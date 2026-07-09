@@ -1,0 +1,588 @@
+{
+  "name": "TP FINAL  - Workflow 2 - Seguimiento de Presupuestos",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "d2fd46b4-3eb1-462b-a4bd-0bb9ddad53ee",
+      "name": "Schedule Diario 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -1120,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Estado",
+              "lookupValue": "Esperando respuesta"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "67ba5b14-7857-419b-b12b-e5d6e5cd4fb2",
+      "name": "Buscar Esperando Respuesta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -896,
+        400
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "018296c9-3f8e-40f0-b6b3-6b9b08474bb0",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -672,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calcula los dias transcurridos desde Fecha Envio (sin reiniciar nunca el conteo)\nconst item = $input.item;\nconst fechaEnvioStr = item.json['Fecha Envío'];\nconst fechaEnvio = DateTime.fromFormat(fechaEnvioStr, 'yyyy-MM-dd H:mm');\nconst dias = Math.floor(DateTime.now().diff(fechaEnvio, 'days').days);\nitem.json.diasTranscurridos = dias;\nreturn item;"
+      },
+      "id": "52d283ed-1953-41ac-9885-6334c76d3749",
+      "name": "Calcular Dias Transcurridos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -448,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.diasTranscurridos }}",
+                    "rightValue": 15,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.diasTranscurridos }}",
+                    "rightValue": 7,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json['Recordatorio 2 Enviado'] }}",
+                    "rightValue": "Sí",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.diasTranscurridos }}",
+                    "rightValue": 3,
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    }
+                  },
+                  {
+                    "leftValue": "={{ $json['Recordatorio 1 Enviado'] }}",
+                    "rightValue": "Sí",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "e3f5c083-78f6-4081-b13e-55e8c66f7fbd",
+      "name": "Switch Dias",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -224,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $json['Orden de Servicio'] }}",
+            "Estado": "Presupuesto vencido",
+            "Fecha Vencimiento": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd HH:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "8487a956-efdd-4aec-b4f7-af78782f91bd",
+      "name": "Actualizar Estado Vencido",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003754009116",
+        "text": "=⚠️ Presupuesto VENCIDO\nOrden de Servicio: {{ $json['Orden de Servicio'] }}\nCliente: {{ $json['Cliente'] }}\nHan pasado {{ $json['diasTranscurridos'] || $('Calcular Dias Transcurridos').item.json.diasTranscurridos }} días sin respuesta.",
+        "additionalFields": {}
+      },
+      "id": "b81e62a1-b145-4b8f-9939-6cd8754fc73e",
+      "name": "Telegram Vencido",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        0
+      ],
+      "webhookId": "46ce6ddf-61cd-42e8-a276-453dd3b832da",
+      "credentials": {
+        "telegramApi": {
+          "id": "qkbp7lcszN1rnIVF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Calcular Dias Transcurridos').item.json['Email'] }}",
+        "subject": "=Recordatorio - Presupuesto pendiente OS-{{ $('Calcular Dias Transcurridos').item.json['Orden de Servicio'] }}",
+        "message": "=<p>Hola {{ $('Calcular Dias Transcurridos').item.json['Cliente'] }},</p><p>Te recordamos que tenés un presupuesto pendiente de respuesta correspondiente a la Orden de Servicio {{ $('Calcular Dias Transcurridos').item.json['Orden de Servicio'] }} (equipo: {{ $('Calcular Dias Transcurridos').item.json['Equipo'] }}, importe: ${{ $('Calcular Dias Transcurridos').item.json['Importe Presupuesto'] }}).</p><p>Si ya no lo recibiste o tenés dudas, respondé este correo.</p><p>Saludos,<br>Administración</p>",
+        "options": {}
+      },
+      "id": "3c9607b2-c78b-4c23-9324-4123051f348d",
+      "name": "Gmail Recordatorio 2",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        320
+      ],
+      "webhookId": "af7cdf26-7ecf-4a87-aecf-6306f8fa2736",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ThYpdloKtgyADRdh",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003754009116",
+        "text": "=🔔 Recordatorio 2 enviado\nOrden de Servicio: {{ $('Calcular Dias Transcurridos').item.json['Orden de Servicio'] }}\nCliente: {{ $('Calcular Dias Transcurridos').item.json['Cliente'] }}\n{{ $('Calcular Dias Transcurridos').item.json['diasTranscurridos'] }} días sin respuesta.",
+        "additionalFields": {}
+      },
+      "id": "e945035f-362e-44a6-907c-32fcbea227da",
+      "name": "Telegram Recordatorio 2",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        320
+      ],
+      "webhookId": "7df5f64f-da8f-47e1-8c5b-e0d1c0a93e16",
+      "credentials": {
+        "telegramApi": {
+          "id": "qkbp7lcszN1rnIVF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $('Calcular Dias Transcurridos').item.json['Orden de Servicio'] }}",
+            "Recordatorio 2 Enviado": "Sí",
+            "Fecha Recordatorio 2": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd HH:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "dd41610f-39be-4be6-afb2-b97bcada68d4",
+      "name": "Actualizar Recordatorio 2",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        320
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Calcular Dias Transcurridos').item.json['Email'] }}",
+        "subject": "=Recordatorio - Presupuesto pendiente OS-{{ $('Calcular Dias Transcurridos').item.json['Orden de Servicio'] }}",
+        "message": "=<p>Hola {{ $('Calcular Dias Transcurridos').item.json['Cliente'] }},</p><p>Te recordamos que tenés un presupuesto pendiente de respuesta correspondiente a la Orden de Servicio {{ $('Calcular Dias Transcurridos').item.json['Orden de Servicio'] }} (equipo: {{ $('Calcular Dias Transcurridos').item.json['Equipo'] }}, importe: ${{ $('Calcular Dias Transcurridos').item.json['Importe Presupuesto'] }}).</p><p>Por favor confirmanos si querés avanzar con la reparación.</p><p>Saludos,<br>Administración</p>",
+        "options": {}
+      },
+      "id": "29c3e3ef-9301-4ae3-a982-dcb9833ef3a5",
+      "name": "Gmail Recordatorio 1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        608
+      ],
+      "webhookId": "edbeebcb-7395-49dd-b0cc-f86742800e27",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ThYpdloKtgyADRdh",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $('Calcular Dias Transcurridos').item.json['Orden de Servicio'] }}",
+            "Recordatorio 1 Enviado": "Sí",
+            "Fecha Recordatorio 1": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd HH:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "20c7bd97-307b-4996-983b-c451d07b0f19",
+      "name": "Actualizar Recordatorio 1",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        608
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Diario 09:00": {
+      "main": [
+        [
+          {
+            "node": "Buscar Esperando Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Esperando Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Calcular Dias Transcurridos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Dias Transcurridos": {
+      "main": [
+        [
+          {
+            "node": "Switch Dias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Dias": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Estado Vencido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail Recordatorio 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gmail Recordatorio 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Estado Vencido": {
+      "main": [
+        [
+          {
+            "node": "Telegram Vencido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Vencido": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Recordatorio 2": {
+      "main": [
+        [
+          {
+            "node": "Telegram Recordatorio 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Recordatorio 2": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Recordatorio 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Recordatorio 2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Recordatorio 1": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Recordatorio 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Recordatorio 1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "aa3dee8e-2bc3-4b82-a629-f9f04ce6d63f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "db1befee63b758bd120cef36b2a42f701955c1f6b1d30cca6ca962fee3777c9f"
+  },
+  "nodeGroups": [],
+  "id": "mvcYjX4MMs9RjlEM",
+  "tags": []
+}

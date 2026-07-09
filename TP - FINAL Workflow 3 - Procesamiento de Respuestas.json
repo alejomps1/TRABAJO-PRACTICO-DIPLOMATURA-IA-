@@ -1,0 +1,805 @@
+{
+  "name": "TP - FINAL Workflow 3 - Procesamiento de Respuestas",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "respuesta-presupuesto",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cc5362d3-be63-43ec-a0ef-2d1d5f468b0f",
+      "name": "Webhook Botones",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -128
+      ],
+      "webhookId": "respuesta-presupuesto"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $json.query.orden }}",
+            "Estado": "={{ $json.query.accion === 'aceptar' ? 'Presupuesto aprobado' : 'Presupuesto rechazado' }}",
+            "Fecha Respuesta Cliente": "={{ $now.format('yyyy-MM-dd H:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd H:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "adcc4c20-e498-4ffb-8429-3c9772c3d0e4",
+      "name": "Actualizar Respuesta Botones",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        48,
+        -128
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003754009116",
+        "text": "=📩 Respuesta por botón\nOrden de Servicio: {{ $('Webhook Botones').item.json.query.orden }}\nDecisión: {{ $('Webhook Botones').item.json.query.accion === 'aceptar' ? 'APROBADO ✅' : 'RECHAZADO ❌' }}",
+        "additionalFields": {}
+      },
+      "id": "555b4773-5d65-4b99-912e-277f4c61c08a",
+      "name": "Telegram Botones",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        -176
+      ],
+      "webhookId": "0b86b2e3-b6b7-4cb6-bcde-11f98c2a8d50",
+      "credentials": {
+        "telegramApi": {
+          "id": "qkbp7lcszN1rnIVF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<html><body style=\"font-family:sans-serif;text-align:center;padding-top:80px;\"><h2>¡Gracias!</h2><p>Tu respuesta para la Orden de Servicio {{ $('Webhook Botones').item.json.query.orden }} fue registrada correctamente.</p></body></html>",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html"
+              }
+            ]
+          }
+        }
+      },
+      "id": "564c1c37-1924-450f-8cbb-3cddb97646dc",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        544,
+        -160
+      ]
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "db20a49f-78bc-41df-8b20-fd33a3c0e4e9",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        368
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ThYpdloKtgyADRdh",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrae el numero de Orden de Servicio del asunto del mail (ej: OS0001, OS-0001)\nconst item = $input.item;\n\n// Gmail puede devolver el asunto en distintos lugares segun el formato\nlet subject =\n  item.json.subject \n  item.json.Subject \n  item.json.headers?.subject \n  item.json.headers?.Subject \n  '';\n\n// Si sigue vacio, buscar en el array de headers del formato raw de Gmail\nif (!subject && item.json.payload?.headers) {\n  const headerSubject = item.json.payload.headers.find(h => h.name === 'Subject');\n  if (headerSubject) subject = headerSubject.value;\n}\n\nconst match = subject.match(/OS[_-]?\\d+/i);\nitem.json.ordenExtraida = match ? match[0].toUpperCase().replace('-', '_') : null;\nitem.json.asuntoDebug = subject; // para poder ver que asunto detecto, sacalo despues\nreturn item;\n"
+      },
+      "id": "6fd157b2-3fdc-4fe5-8165-999b7ca1af8d",
+      "name": "Extraer Orden de Servicio",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Orden de Servicio",
+              "lookupValue": "={{ $json.ordenExtraida }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bfedc4e8-cdc0-4e29-bd14-b432a2563d6d",
+      "name": "Buscar Orden",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        448,
+        368
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json['Estado'] }}",
+              "rightValue": "Esperando respuesta",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1cf8f8a2-2807-4610-9559-6afd754c418a",
+      "name": "Verificar Esperando Respuesta",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [ { parts: [ { text: \"Clasificá la siguiente respuesta de un cliente sobre un presupuesto de reparación. Respondé UNICAMENTE con una de estas 4 palabras, sin nada mas: APROBADO, RECHAZADO, CONSULTA, INDETERMINADO.\\n\\nRespuesta del cliente:\\n\" + $('Gmail Trigger').item.json.text } ] } ] }) }}",
+        "options": {}
+      },
+      "id": "2b110425-7785-426f-8466-f4bcf0f48cfb",
+      "name": "Clasificar con Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        896,
+        288
+      ],
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "fn5iAManJsX45GBs",
+          "name": "Query Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrae y valida la clasificacion devuelta por Gemini\nconst item = $input.item;\nconst raw = item.json?.candidates?.[0]?.content?.parts?.[0]?.text || '';\nconst clasificacion = raw.trim().toUpperCase();\nconst validas = ['APROBADO', 'RECHAZADO', 'CONSULTA', 'INDETERMINADO'];\nitem.json.clasificacion = validas.includes(clasificacion) ? clasificacion : 'INDETERMINADO';\nreturn item;"
+      },
+      "id": "d43310c0-e962-4c94-82c2-211f3a844f51",
+      "name": "Extraer Clasificacion",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.clasificacion }}",
+                    "rightValue": "APROBADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.clasificacion }}",
+                    "rightValue": "RECHAZADO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.clasificacion }}",
+                    "rightValue": "CONSULTA",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "d7200425-0827-43e7-9d0a-3e2643bd50ec",
+      "name": "Switch Clasificacion",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1344,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $('Buscar Orden').item.json['Orden de Servicio'] }}",
+            "Estado": "Presupuesto aprobado",
+            "Fecha Respuesta Cliente": "={{ $now.format('yyyy-MM-dd H:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd H:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "4b544ff1-cbb0-413a-8c07-479f7be790fb",
+      "name": "Actualizar Aprobado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003754009116",
+        "text": "=✅ Presupuesto APROBADO por mail\nOrden de Servicio: {{ $('Buscar Orden').item.json['Orden de Servicio'] }}\nCliente: {{ $('Buscar Orden').item.json['Cliente'] }}",
+        "additionalFields": {}
+      },
+      "id": "ff737963-1064-441c-9dd6-93cd4499207f",
+      "name": "Telegram Aprobado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1792,
+        0
+      ],
+      "webhookId": "5ccf5965-4d58-43cc-8d74-b5278f3cdfd0",
+      "credentials": {
+        "telegramApi": {
+          "id": "qkbp7lcszN1rnIVF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $('Buscar Orden').item.json['Orden de Servicio'] }}",
+            "Estado": "Presupuesto rechazado",
+            "Fecha Respuesta Cliente": "={{ $now.format('yyyy-MM-dd H:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd H:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "7de06a3a-d9de-4c60-a297-fb394ddd712f",
+      "name": "Actualizar Rechazado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        288
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003754009116",
+        "text": "=❌ Presupuesto RECHAZADO por mail\nOrden de Servicio: {{ $('Buscar Orden').item.json['Orden de Servicio'] }}\nCliente: {{ $('Buscar Orden').item.json['Cliente'] }}",
+        "additionalFields": {}
+      },
+      "id": "89004409-c4e0-46e6-8b11-59fec6effa2c",
+      "name": "Telegram Rechazado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1792,
+        288
+      ],
+      "webhookId": "68ee91ed-0cec-40f5-857c-2e57b36c66c7",
+      "credentials": {
+        "telegramApi": {
+          "id": "qkbp7lcszN1rnIVF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $('Buscar Orden').item.json['Orden de Servicio'] }}",
+            "Estado": "Pendiente gestión administrativa",
+            "Motivo de pausa": "Consulta del cliente",
+            "Fecha Respuesta Cliente": "={{ $now.format('yyyy-MM-dd H:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd H:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "dcc38b71-5a95-4069-aee6-982219f36594",
+      "name": "Actualizar Consulta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        560
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003754009116",
+        "text": "=❓ CONSULTA del cliente - requiere gestión administrativa\nOrden de Servicio: {{ $('Buscar Orden').item.json['Orden de Servicio'] }}\nCliente: {{ $('Buscar Orden').item.json['Cliente'] }}",
+        "additionalFields": {}
+      },
+      "id": "cee543a4-ef8a-49d5-b109-6aa3e74df2c2",
+      "name": "Telegram Consulta",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1792,
+        560
+      ],
+      "webhookId": "2df0a5bc-ce7c-4b28-937e-a6613a36582c",
+      "credentials": {
+        "telegramApi": {
+          "id": "qkbp7lcszN1rnIVF",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "value": {
+            "Orden de Servicio": "={{ $('Buscar Orden').item.json['Orden de Servicio'] }}",
+            "Estado": "Pendiente gestión administrativa",
+            "Motivo de pausa": "Respuesta indeterminada",
+            "Fecha Respuesta Cliente": "={{ $now.format('yyyy-MM-dd H:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd H:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "8c003594-5f17-45ab-b870-97c921d7739d",
+      "name": "Actualizar Indeterminado",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        848
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "-1003754009116",
+        "text": "=❓ Respuesta INDETERMINADA - requiere gestión administrativa\nOrden de Servicio: {{ $('Buscar Orden').item.json['Orden de Servicio'] }}\nCliente: {{ $('Buscar Orden').item.json['Cliente'] }}",
+        "additionalFields": {}
+      },
+      "id": "766b9e91-6003-4dd7-9771-0ac2e63ec0a2",
+      "name": "Telegram Indeterminado",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1792,
+        848
+      ],
+      "webhookId": "8c63a52c-6ffa-43a2-8939-3b73469a16e2",
+      "credentials": {
+        "telegramApi": {
+          "id": "qkbp7lcszN1rnIVF",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Botones": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Respuesta Botones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Respuesta Botones": {
+      "main": [
+        [
+          {
+            "node": "Telegram Botones",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Botones": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extraer Orden de Servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Orden de Servicio": {
+      "main": [
+        [
+          {
+            "node": "Buscar Orden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Orden": {
+      "main": [
+        [
+          {
+            "node": "Verificar Esperando Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Esperando Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Clasificar con Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar con Gemini": {
+      "main": [
+        [
+          {
+            "node": "Extraer Clasificacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Clasificacion": {
+      "main": [
+        [
+          {
+            "node": "Switch Clasificacion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Clasificacion": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Actualizar Rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Actualizar Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Actualizar Indeterminado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Aprobado": {
+      "main": [
+        [
+          {
+            "node": "Telegram Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Rechazado": {
+      "main": [
+        [
+          {
+            "node": "Telegram Rechazado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Consulta": {
+      "main": [
+        [
+          {
+            "node": "Telegram Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Indeterminado": {
+      "main": [
+        [
+          {
+            "node": "Telegram Indeterminado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7978c659-4206-4780-8a52-519eb6dc205e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "db1befee63b758bd120cef36b2a42f701955c1f6b1d30cca6ca962fee3777c9f"
+  },
+  "nodeGroups": [],
+  "id": "Ky1g3YCr5OFU4Wvl",
+  "tags": []
+}

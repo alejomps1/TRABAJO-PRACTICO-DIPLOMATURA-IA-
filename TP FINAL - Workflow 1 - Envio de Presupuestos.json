@@ -1,0 +1,412 @@
+{
+  "name": "TP FINAL - Workflow 1 - Envio de Presupuestos",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "d1fc8352-5f1f-4891-9c84-a2cfc86299a4",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Estado",
+              "lookupValue": "Listo para enviar"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c8d71d77-47f6-42c6-910f-6623a7307651",
+      "name": "Buscar Listo para Enviar",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -496,
+        -32
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "68e4f7ac-7bca-4e47-b1a2-9c69a0bc8214",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -272,
+        -32
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json['Email'] }}",
+        "subject": "=Presupuesto - Orden de Servicio {{ $json['Orden de Servicio'] }}",
+        "message": "=<p>Hola {{ $json['Cliente'] }},</p><p>Te enviamos el presupuesto correspondiente a tu equipo <strong>{{ $json['Equipo'] }}</strong> (Orden de Servicio {{ $json['Orden de Servicio'] }}).</p><p>Importe del presupuesto: <strong>${{ $json['Importe Presupuesto'] }}</strong></p><p>Por favor confirmanos si querés avanzar con la reparación:</p><p><a href=\"https://lucasvazquez99.app.n8n.cloud/webhook/respuesta-presupuesto?orden={{ $json['Orden de Servicio'] }}&accion=aceptar\" style=\"background:#2e7d32;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;margin-right:10px;\">Aceptar</a><a href=\"https://lucasvazquez99.app.n8n.cloud/webhook/respuesta-presupuesto?orden={{ $json['Orden de Servicio'] }}&accion=rechazar\" style=\"background:#c62828;color:#fff;padding:10px 20px;text-decoration:none;border-radius:4px;\">Rechazar</a></p><p>También podés responder este correo directamente si tenés alguna consulta.</p><p>Saludos,<br>Administración</p>",
+        "options": {}
+      },
+      "id": "b1f340f9-09e0-4a35-8a4b-fedf4d6ef650",
+      "name": "Enviar Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -48,
+        -112
+      ],
+      "webhookId": "214aaf9b-c84b-495d-80ab-e88bd63aade5",
+      "alwaysOutputData": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ThYpdloKtgyADRdh",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM",
+          "mode": "list",
+          "cachedResultName": "TP_ Planilla_Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Presupuestos",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16AjxYsh0Q3SotK3eOBWYcuz9bTo-gubMAd7-uFq6WvM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Orden de Servicio": "={{ $('Loop Over Items').item.json['Orden de Servicio'] }}",
+            "Estado": "Esperando respuesta",
+            "Fecha Envío": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Última Actualización": "={{ $now.format('yyyy-MM-dd HH:mm') }}"
+          },
+          "matchingColumns": [
+            "Orden de Servicio"
+          ],
+          "schema": [
+            {
+              "id": "Orden de Servicio",
+              "displayName": "Orden de Servicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Teléfono",
+              "displayName": "Teléfono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Equipo",
+              "displayName": "Equipo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Importe Presupuesto",
+              "displayName": "Importe Presupuesto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha Envío",
+              "displayName": "Fecha Envío",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha Respuesta Cliente",
+              "displayName": "Fecha Respuesta Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recordatorio 1 Enviado",
+              "displayName": "Recordatorio 1 Enviado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha Recordatorio 1",
+              "displayName": "Fecha Recordatorio 1",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Recordatorio 2 Enviado",
+              "displayName": "Recordatorio 2 Enviado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha Recordatorio 2",
+              "displayName": "Fecha Recordatorio 2",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha Vencimiento",
+              "displayName": "Fecha Vencimiento",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Motivo de pausa",
+              "displayName": "Motivo de pausa",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Última Actualización",
+              "displayName": "Última Actualización",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "threadId",
+              "displayName": "threadId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "labelIds",
+              "displayName": "labelIds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "11af2d34-b3f7-49dd-b8f4-1f14335d0618",
+      "name": "Actualizar Estado a Esperando Respuesta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        272,
+        -80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "uQwGHTdbOMC3Z2uJ",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Buscar Listo para Enviar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Listo para Enviar": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Enviar Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar Gmail": {
+      "main": [
+        [
+          {
+            "node": "Actualizar Estado a Esperando Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Estado a Esperando Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "13452045-7fa8-421e-adbc-c2f24b9b46f7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "db1befee63b758bd120cef36b2a42f701955c1f6b1d30cca6ca962fee3777c9f"
+  },
+  "nodeGroups": [],
+  "id": "HKBBM3NOqL3YWjao",
+  "tags": []
+}
