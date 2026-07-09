@@ -104,6 +104,7 @@ Activá los tres workflows (toggle **Active**). El Workflow 1 y el Workflow 3 (q
 - El plan gratuito de n8n tiene un límite bajo de ejecuciones mensuales, algo a tener en cuenta si se usa en producción real.
 - La clasificación de Gemini depende de la disponibilidad del servicio (pueden aparecer errores 503 transitorios por alta demanda).
 - El sistema asume que los datos de cada Orden de Servicio se cargan de forma consistente en la planilla.
+- IMPORTANTE: Tener en cuenta que no pudimos hacer terminar de funcionar la parte del webhook en el workflow 3, pero la parte del gmail trigger con la asistencia de Gemini para interpretar respuestas funciona perfectamente.
 
 ## Cómo se construyó
 
